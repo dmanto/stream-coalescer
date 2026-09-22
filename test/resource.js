@@ -35,6 +35,49 @@ test('two clients coalesce on one resource', async t => {
   await late.closeOk(1000, '');
 });
 
+test('a piggybacking client catches up on data sent before it joined', async t => {
+  const writer = await app.newTestUserAgent();
+  t.after(() => writer.stop());
+
+  await writer.websocketOk('/v0/piggyback', {json: true});
+  assert.deepEqual(await writer.messageOk(), {order: 1, data: []});
+
+  await writer.sendOk({chunk: 'one'});
+  assert.deepEqual(await writer.messageOk(), {data: [{chunk: 'one'}]}); // writer's own echo
+
+  await writer.sendOk({chunk: 'two'});
+  assert.deepEqual(await writer.messageOk(), {data: [{chunk: 'two'}]});
+
+  // joins after two chunks already streamed — must catch up on both in one shot
+  const reader = await app.newTestUserAgent();
+  t.after(() => reader.stop());
+  await reader.websocketOk('/v0/piggyback', {json: true});
+  assert.deepEqual(await reader.messageOk(), {order: 2, data: [{chunk: 'one'}, {chunk: 'two'}]});
+
+  // and still gets live chunks sent after it joined, same as an original listener would
+  await writer.sendOk({chunk: 'three'});
+  assert.deepEqual(await reader.messageOk(), {data: [{chunk: 'three'}]});
+  assert.deepEqual(await writer.messageOk(), {data: [{chunk: 'three'}]});
+
+  // a third, even later joiner catches up on the full accumulated history
+  const latest = await app.newTestUserAgent();
+  t.after(() => latest.stop());
+  await latest.websocketOk('/v0/piggyback', {json: true});
+  assert.deepEqual(await latest.messageOk(), {
+    order: 3,
+    data: [{chunk: 'one'}, {chunk: 'two'}, {chunk: 'three'}]
+  });
+
+  await writer.sendOk({end: true});
+  assert.deepEqual(await reader.messageOk(), {end: true});
+  assert.deepEqual(await writer.messageOk(), {end: true});
+  assert.deepEqual(await latest.messageOk(), {end: true});
+
+  await reader.closedOk(1000);
+  await writer.closedOk(1000);
+  await latest.closedOk(1000);
+});
+
 test('a client-sent error message ends the stream for everyone', async t => {
   const writer = await app.newTestUserAgent();
   const reader = await app.newTestUserAgent();
