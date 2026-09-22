@@ -1,15 +1,11 @@
 import type {MojoContext} from '@mojojs/core';
-
-interface Frame {
-  data?: unknown[];
-  end?: boolean;
-  error?: {code: string; msg: string};
-}
+import type {Frame} from '../models/stream-resources.js';
 
 export default class ResourceController {
   async connect(ctx: MojoContext): Promise<void> {
     const key = String(ctx.stash.key);
-    const resource = ctx.models.streamResources.getOrCreate(key);
+    const resources = ctx.models.streamResources;
+    const resource = resources.getOrCreate(key);
 
     ctx.json(async ws => {
       const order = ++resource.order; // permanent id for this connection, never reused
@@ -20,8 +16,12 @@ export default class ResourceController {
         if (left) return; // idempotent — can be triggered from two places below
         left = true;
         resource.emitter.removeListener('frame', listener); // before broadcasting, so we don't send to ourselves
-        if (errorFrame !== undefined) resource.emitter.emit('frame', errorFrame);
-        if (--resource.count === 0) ctx.models.streamResources.destroy(key);
+        if (errorFrame !== undefined) resources.terminate(resource, errorFrame);
+        // a successful end still within its TTL window stays cached for piggybacking clients;
+        // an error, or a resource whose TTL grace was already spent, is torn down right away
+        if (--resource.count === 0 && (resource.endedWithError !== false || resource.expired)) {
+          resources.destroy(key, resource);
+        }
       };
 
       const listener = (frame: Frame): void => {
@@ -34,6 +34,12 @@ export default class ResourceController {
       resource.emitter.on('frame', listener);
       await ws.send({order, data: resource.data});
 
+      let timedOut = false;
+      const connectionTimer = setTimeout(() => {
+        timedOut = true;
+        ws.close(1000);
+      }, resources.connectionMaxDurationMs).unref();
+
       let terminated = false;
       let wroteData = false;
       try {
@@ -41,7 +47,7 @@ export default class ResourceController {
           const frame = msg as Frame;
           if (frame.end === true || frame.error !== undefined) {
             terminated = true;
-            resource.emitter.emit('frame', frame); // broadcast the terminal frame itself
+            resources.terminate(resource, frame); // broadcast the terminal frame itself
             break;
           }
           resource.data.push(msg); // bound this before production use
@@ -49,11 +55,16 @@ export default class ResourceController {
           resource.emitter.emit('frame', {data: [msg]});
         }
       } finally {
+        clearTimeout(connectionTimer);
         // the socket dropped without an end/error — if this connection was producing
         // data, remaining listeners need to know the stream died, not just go quiet
         leave(
           !terminated && wroteData
-            ? {error: {code: 'WRITER_GONE', msg: 'connection closed without ending the stream'}}
+            ? {
+                error: timedOut
+                  ? {code: 'CONNECTION_TIMEOUT', msg: 'connection exceeded its maximum allowed duration'}
+                  : {code: 'WRITER_GONE', msg: 'connection closed without ending the stream'}
+              }
             : undefined
         );
       }

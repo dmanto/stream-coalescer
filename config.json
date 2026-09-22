@@ -1,0 +1,5 @@
+{
+  "maxAgeMs": 20000,
+  "endMaxTimeMs": 30000,
+  "connectionMaxDurationMs": 60000
+}
