@@ -1,17 +1,18 @@
 {
-  "name": "sif-ms",
+  "name": "stream-coalescer",
   "version": "0.1.0",
   "description": "In-flight coalescing cache microservice for streamed service responses",
-  "private": true,
   "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@10.32.1",
   "exports": "./lib/index.js",
   "types": "./lib/index.d.ts",
   "bin": {
-    "sif-ms": "./lib/index.js"
+    "stream-coalescer": "lib/index.js"
   },
-  "files": ["lib/"],
+  "files": [
+    "lib/"
+  ],
   "engines": {
     "node": ">=20"
   },
