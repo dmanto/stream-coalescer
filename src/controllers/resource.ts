@@ -19,7 +19,8 @@ export default class ResourceController {
         if (errorFrame !== undefined) resources.terminate(resource, errorFrame);
         // a successful end still within its TTL window stays cached for piggybacking clients;
         // an error, or a resource whose TTL grace was already spent, is torn down right away
-        if (--resource.count === 0 && (resource.endedWithError !== false || resource.expired)) {
+        const endedSuccessfully = resource.terminalFrame !== undefined && resource.terminalFrame.error === undefined;
+        if (--resource.count === 0 && (!endedSuccessfully || resource.expired)) {
           resources.destroy(key, resource);
         }
       };
@@ -32,7 +33,19 @@ export default class ResourceController {
         }
       };
       resource.emitter.on('frame', listener);
-      await ws.send({order, data: resource.data});
+
+      // joining a resource that already reached a terminal state — hand over the full catch-up
+      // plus that status in one shot, then close right away, same as any other terminal frame
+      const already = resource.terminalFrame;
+      const initial: Frame = {order, data: resource.data};
+      if (already?.end === true) initial.end = true;
+      if (already?.error !== undefined) initial.error = already.error;
+      await ws.send(initial);
+      if (already !== undefined) {
+        leave();
+        ws.close(1000);
+        return;
+      }
 
       let timedOut = false;
       const connectionTimer = setTimeout(() => {

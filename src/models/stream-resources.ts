@@ -1,6 +1,7 @@
 import {EventEmitter} from 'node:events';
 
 export interface Frame {
+  order?: number;
   data?: unknown[];
   end?: boolean;
   error?: {code: string; msg: string};
@@ -12,7 +13,7 @@ export interface Resource {
   order: number;
   count: number;
   expired: boolean; // TTL window already fired once while attended — next zero destroys, no more grace
-  endedWithError: boolean | undefined; // undefined = not terminated yet
+  terminalFrame: Frame | undefined; // the end/error frame that ended it, if it has ended at all
 }
 
 export interface StreamResourcesOptions {
@@ -43,7 +44,7 @@ export default class StreamResources {
 
     const emitter = new EventEmitter();
     emitter.setMaxListeners(1000);
-    const resource: Resource = {emitter, data: [], order: 0, count: 0, expired: false, endedWithError: undefined};
+    const resource: Resource = {emitter, data: [], order: 0, count: 0, expired: false, terminalFrame: undefined};
     this.#resources.set(key, resource);
 
     // anchored at creation, not renewed by activity — caps how long a cached, completed
@@ -55,7 +56,7 @@ export default class StreamResources {
 
     // anchored at creation — caps how long the resource may stay non-terminal at all
     setTimeout(() => {
-      if (resource.endedWithError === undefined) {
+      if (resource.terminalFrame === undefined) {
         this.terminate(resource, {
           error: {code: 'END_TIMEOUT', msg: 'resource did not reach a terminal state in time'}
         });
@@ -67,7 +68,7 @@ export default class StreamResources {
 
   /** Records how the resource ended and broadcasts the terminal frame to every attached connection. */
   terminate(resource: Resource, frame: Frame): void {
-    resource.endedWithError = frame.error !== undefined;
+    resource.terminalFrame = frame;
     resource.emitter.emit('frame', frame);
   }
 
