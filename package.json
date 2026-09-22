@@ -16,10 +16,10 @@
   },
   "scripts": {
     "build": "tsc --build && chmod +x lib/index.js",
-    "build:clean": "rm -rf lib tsconfig.tsbuildinfo && npm run build",
-    "test": "npm run build && node --test --experimental-test-coverage test/*.js",
+    "build:clean": "rm -rf lib tsconfig.tsbuildinfo && pnpm run build",
+    "test": "pnpm run build && node --test --experimental-test-coverage test/*.js",
     "lint": "eslint .",
-    "lint:fix": "npm run lint -- --fix",
+    "lint:fix": "pnpm run lint -- --fix",
     "dev": "node --watch lib/index.js server -l http://*:3000"
   },
   "dependencies": {
