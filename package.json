@@ -1,0 +1,39 @@
+{
+  "name": "sif-ms",
+  "version": "0.1.0",
+  "description": "In-flight coalescing cache microservice for streamed service responses",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "exports": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "bin": {
+    "sif-ms": "./lib/index.js"
+  },
+  "files": ["lib/"],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc --build && chmod +x lib/index.js",
+    "build:clean": "rm -rf lib tsconfig.tsbuildinfo && npm run build",
+    "test": "npm run build && node --test --experimental-test-coverage test/*.js",
+    "lint": "eslint .",
+    "lint:fix": "npm run lint -- --fix",
+    "dev": "node --watch lib/index.js server -l http://*:3000"
+  },
+  "dependencies": {
+    "@mojojs/core": "^1.26.18"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.0.1",
+    "eslint": "^10.3.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
+    "globals": "^17.6.0",
+    "prettier": "^3.8.3",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.2"
+  }
+}
