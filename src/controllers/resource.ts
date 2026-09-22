@@ -16,10 +16,11 @@ export default class ResourceController {
       resource.count++; // live attendance — teardown trigger only
 
       let left = false;
-      const leave = (): void => {
+      const leave = (errorFrame?: Frame): void => {
         if (left) return; // idempotent — can be triggered from two places below
         left = true;
-        resource.emitter.removeListener('frame', listener);
+        resource.emitter.removeListener('frame', listener); // before broadcasting, so we don't send to ourselves
+        if (errorFrame !== undefined) resource.emitter.emit('frame', errorFrame);
         if (--resource.count === 0) ctx.models.streamResources.destroy(key);
       };
 
@@ -33,18 +34,28 @@ export default class ResourceController {
       resource.emitter.on('frame', listener);
       await ws.send({order, data: resource.data});
 
+      let terminated = false;
+      let wroteData = false;
       try {
         for await (const msg of ws) {
           const frame = msg as Frame;
           if (frame.end === true || frame.error !== undefined) {
+            terminated = true;
             resource.emitter.emit('frame', frame); // broadcast the terminal frame itself
             break;
           }
           resource.data.push(msg); // bound this before production use
+          wroteData = true;
           resource.emitter.emit('frame', {data: [msg]});
         }
       } finally {
-        leave(); // covers the socket just dropping, with no end/error ever sent
+        // the socket dropped without an end/error — if this connection was producing
+        // data, remaining listeners need to know the stream died, not just go quiet
+        leave(
+          !terminated && wroteData
+            ? {error: {code: 'WRITER_GONE', msg: 'connection closed without ending the stream'}}
+            : undefined
+        );
       }
     });
   }

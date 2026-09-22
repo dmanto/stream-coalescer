@@ -34,3 +34,64 @@ test('two clients coalesce on one resource', async t => {
   assert.deepEqual(await late.messageOk(), {order: 1, data: []});
   await late.closeOk(1000, '');
 });
+
+test('a client-sent error message ends the stream for everyone', async t => {
+  const writer = await app.newTestUserAgent();
+  const reader = await app.newTestUserAgent();
+  t.after(async () => {
+    await writer.stop();
+    await reader.stop();
+  });
+
+  await writer.websocketOk('/v0/broken', {json: true});
+  assert.deepEqual(await writer.messageOk(), {order: 1, data: []});
+
+  await reader.websocketOk('/v0/broken', {json: true});
+  assert.deepEqual(await reader.messageOk(), {order: 2, data: []});
+
+  await writer.sendOk({error: {code: 'UPSTREAM_FAILED', msg: 'boom'}});
+  assert.deepEqual(await reader.messageOk(), {error: {code: 'UPSTREAM_FAILED', msg: 'boom'}});
+  assert.deepEqual(await writer.messageOk(), {error: {code: 'UPSTREAM_FAILED', msg: 'boom'}}); // writer sees its own echo too
+
+  await reader.closedOk(1000);
+  await writer.closedOk(1000);
+
+  const late = await app.newTestUserAgent();
+  t.after(() => late.stop());
+  await late.websocketOk('/v0/broken', {json: true});
+  assert.deepEqual(await late.messageOk(), {order: 1, data: []});
+  await late.closeOk(1000, '');
+});
+
+test('a dropped connection synthesizes a WRITER_GONE error for remaining listeners', async t => {
+  const writer = await app.newTestUserAgent();
+  const reader = await app.newTestUserAgent();
+  t.after(async () => {
+    await writer.stop();
+    await reader.stop();
+  });
+
+  await writer.websocketOk('/v0/dropped', {json: true});
+  assert.deepEqual(await writer.messageOk(), {order: 1, data: []});
+
+  await reader.websocketOk('/v0/dropped', {json: true});
+  assert.deepEqual(await reader.messageOk(), {order: 2, data: []});
+
+  await writer.sendOk({chunk: 'hello'});
+  assert.deepEqual(await reader.messageOk(), {data: [{chunk: 'hello'}]});
+  assert.deepEqual(await writer.messageOk(), {data: [{chunk: 'hello'}]});
+
+  // writer disconnects without ever sending end/error
+  await writer.closeOk(1000, '');
+
+  assert.deepEqual(await reader.messageOk(), {
+    error: {code: 'WRITER_GONE', msg: 'connection closed without ending the stream'}
+  });
+  await reader.closedOk(1000);
+
+  const late = await app.newTestUserAgent();
+  t.after(() => late.stop());
+  await late.websocketOk('/v0/dropped', {json: true});
+  assert.deepEqual(await late.messageOk(), {order: 1, data: []});
+  await late.closeOk(1000, '');
+});
