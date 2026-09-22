@@ -5,6 +5,7 @@
   "private": true,
   "license": "MIT",
   "type": "module",
+  "packageManager": "pnpm@10.32.1",
   "exports": "./lib/index.js",
   "types": "./lib/index.d.ts",
   "bin": {
@@ -15,8 +16,8 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "tsc --build && chmod +x lib/index.js",
-    "build:clean": "rm -rf lib tsconfig.tsbuildinfo && pnpm build",
+    "build": "tsc --build && shx chmod +x lib/index.js",
+    "build:clean": "shx rm -rf lib tsconfig.tsbuildinfo && pnpm build",
     "test": "pnpm build && node --test --experimental-test-coverage test/*.js",
     "lint": "eslint .",
     "lint:fix": "pnpm lint -- --fix",
@@ -33,6 +34,7 @@
     "eslint-plugin-prettier": "^5.5.5",
     "globals": "^17.6.0",
     "prettier": "^3.8.3",
+    "shx": "^0.4.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.59.2"
   }
