@@ -19,7 +19,7 @@
   "scripts": {
     "build": "tsc --build && shx chmod +x lib/index.js",
     "build:clean": "shx rm -rf lib tsconfig.tsbuildinfo && pnpm build",
-    "test": "pnpm build && node --test --experimental-test-coverage test/*.js",
+    "test": "pnpm build && node --test --experimental-test-coverage",
     "lint": "eslint .",
     "lint:fix": "pnpm lint -- --fix",
     "dev": "node --watch lib/index.js server -l http://*:3000"
