@@ -27,12 +27,13 @@ test('two clients coalesce on one resource', async t => {
   await reader.closedOk(1000);
   await writer.closedOk(1000);
 
-  // resource was destroyed once the last connection left — a fresh connection gets order 1 again
+  // the flight ended successfully, so it stays cached — a late joiner piggybacks on it
+  // instead of getting a fresh resource (full expiry-after-maxAgeMs is covered separately)
   const late = await app.newTestUserAgent();
   t.after(() => late.stop());
   await late.websocketOk('/v0/thing', {json: true});
-  assert.deepEqual(await late.messageOk(), {order: 1, data: []});
-  await late.closeOk(1000, '');
+  assert.deepEqual(await late.messageOk(), {order: 3, data: [{chunk: 'hello'}], end: true});
+  await late.closedOk(1000);
 });
 
 test('a piggybacking client catches up on data sent before it joined', async t => {
