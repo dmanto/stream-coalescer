@@ -141,6 +141,9 @@ test('a dropped connection synthesizes a WRITER_GONE error for remaining listene
 });
 
 test('a successfully completed resource stays cached until maxAgeMs elapses', async t => {
+  // real settling time for sockets/servers left closing by earlier tests — mixing that
+  // teardown with mocked setTimeout otherwise turns a fast close into a ~30s real wait
+  await new Promise(r => setTimeout(r, 100));
   t.mock.timers.enable({apis: ['setTimeout']});
   const resources = app.models.streamResources;
 
@@ -177,6 +180,7 @@ test('a successfully completed resource stays cached until maxAgeMs elapses', as
 });
 
 test('endMaxTimeMs forces an error if the resource never reaches a terminal state', async t => {
+  await new Promise(r => setTimeout(r, 100)); // see the previous test's comment
   t.mock.timers.enable({apis: ['setTimeout']});
   const resources = app.models.streamResources;
 
@@ -200,6 +204,7 @@ test('endMaxTimeMs forces an error if the resource never reaches a terminal stat
 });
 
 test('connectionMaxDurationMs closes an idle reader without affecting the resource', async t => {
+  await new Promise(r => setTimeout(r, 100)); // see the TTL test's comment above
   t.mock.timers.enable({apis: ['setTimeout']});
   const resources = app.models.streamResources;
   const saved = resources.connectionMaxDurationMs;
@@ -240,6 +245,7 @@ test('connectionMaxDurationMs closes an idle reader without affecting the resour
 });
 
 test('connectionMaxDurationMs on a producing connection reports CONNECTION_TIMEOUT, not WRITER_GONE', async t => {
+  await new Promise(r => setTimeout(r, 100)); // see the TTL test's comment above
   t.mock.timers.enable({apis: ['setTimeout']});
   const resources = app.models.streamResources;
   const savedEndMaxTimeMs = resources.endMaxTimeMs;

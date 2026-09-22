@@ -14,6 +14,8 @@ export interface Resource {
   count: number;
   expired: boolean; // TTL window already fired once while attended — next zero destroys, no more grace
   terminalFrame: Frame | undefined; // the end/error frame that ended it, if it has ended at all
+  maxAgeTimer: NodeJS.Timeout;
+  endMaxTimeTimer: NodeJS.Timeout;
 }
 
 export interface StreamResourcesOptions {
@@ -44,18 +46,16 @@ export default class StreamResources {
 
     const emitter = new EventEmitter();
     emitter.setMaxListeners(1000);
-    const resource: Resource = {emitter, data: [], order: 0, count: 0, expired: false, terminalFrame: undefined};
-    this.#resources.set(key, resource);
 
     // anchored at creation, not renewed by activity — caps how long a cached, completed
     // resource may keep serving piggybacking clients before it's really torn down
-    setTimeout(() => {
+    const maxAgeTimer = setTimeout(() => {
       if (resource.count === 0) this.destroy(key, resource);
       else resource.expired = true;
     }, this.maxAgeMs).unref();
 
     // anchored at creation — caps how long the resource may stay non-terminal at all
-    setTimeout(() => {
+    const endMaxTimeTimer = setTimeout(() => {
       if (resource.terminalFrame === undefined) {
         this.terminate(resource, {
           error: {code: 'END_TIMEOUT', msg: 'resource did not reach a terminal state in time'}
@@ -63,18 +63,33 @@ export default class StreamResources {
       }
     }, this.endMaxTimeMs).unref();
 
+    const resource: Resource = {
+      emitter,
+      data: [],
+      order: 0,
+      count: 0,
+      expired: false,
+      terminalFrame: undefined,
+      maxAgeTimer,
+      endMaxTimeTimer
+    };
+    this.#resources.set(key, resource);
     return resource;
   }
 
   /** Records how the resource ended and broadcasts the terminal frame to every attached connection. */
   terminate(resource: Resource, frame: Frame): void {
     resource.terminalFrame = frame;
+    clearTimeout(resource.endMaxTimeTimer); // no longer relevant once a terminal state is reached
     resource.emitter.emit('frame', frame);
   }
 
   /** No-ops if `key` no longer points at this exact resource — a newer generation may already be there. */
   destroy(key: string, resource: Resource): void {
-    if (this.#resources.get(key) === resource) this.#resources.delete(key);
+    if (this.#resources.get(key) !== resource) return;
+    clearTimeout(resource.maxAgeTimer);
+    clearTimeout(resource.endMaxTimeTimer);
+    this.#resources.delete(key);
   }
 }
 
