@@ -1,6 +1,6 @@
 {
   "name": "stream-coalescer",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "In-flight coalescing cache microservice for streamed service responses",
   "license": "MIT",
   "type": "module",
