@@ -17,7 +17,6 @@ test('endMaxTimeMs forces an error if the resource never reaches a terminal stat
 
   // never sends end/error — advance past endMaxTimeMs
   t.mock.timers.tick(resources.endMaxTimeMs);
-  t.mock.timers.reset(); // the forced error still needs a real close handshake to complete
 
   assert.deepEqual(await writer.messageOk(), {
     error: {code: 'END_TIMEOUT', msg: 'resource did not reach a terminal state in time'}

@@ -31,7 +31,6 @@ test('a successfully completed resource stays cached until maxAgeMs elapses', as
 
   // advance past maxAgeMs with nobody attached — the resource must really be gone now
   t.mock.timers.tick(resources.maxAgeMs);
-  t.mock.timers.reset(); // back to real timers — nothing left to fire, just being tidy
 
   const late = await app.newTestUserAgent();
   t.after(() => late.stop());

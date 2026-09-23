@@ -40,7 +40,6 @@ test('connectionMaxDurationMs on a producing connection reports CONNECTION_TIMEO
   // listener is removed before the synthesized error is broadcast (same as WRITER_GONE), so
   // only the reader — the bystander still registered — ever sees the CONNECTION_TIMEOUT frame.
   t.mock.timers.tick(5_000);
-  t.mock.timers.reset(); // the forced error still needs a real close handshake to complete
 
   assert.deepEqual(await reader.messageOk(), {
     error: {code: 'CONNECTION_TIMEOUT', msg: 'connection exceeded its maximum allowed duration'}

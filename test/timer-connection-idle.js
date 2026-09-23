@@ -30,7 +30,6 @@ test('connectionMaxDurationMs closes an idle reader without affecting the resour
 
   // the reader just sits there, never writing anything — only its own connection times out
   t.mock.timers.tick(5_000);
-  t.mock.timers.reset(); // the forced close still needs a real close handshake to complete
   await reader.closedOk(1000);
 
   // the resource itself is untouched — the writer keeps going normally
