@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+
+- Upgraded `@mojojs/core` to 2.0. Incoming WebSocket messages are now capped at 256 KiB by default (larger ones close the connection with status `1009`).
+- Minimum Node.js version raised from 22 to 22.18.
+- No build step for development: tests and `pnpm run dev` run `src/*.ts` directly with Node type stripping; `tsc` is only used for type checking (`pnpm check`) and to compile `lib/` on pack/publish.
+
 ## [0.2.0] - 2026-09-23
 
 ### Added

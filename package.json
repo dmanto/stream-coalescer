@@ -14,18 +14,19 @@
     "lib/"
   ],
   "engines": {
-    "node": ">=22"
+    "node": ">=22.18"
   },
   "scripts": {
-    "build": "tsc --build && shx chmod +x lib/index.js",
-    "build:clean": "shx rm -rf lib tsconfig.tsbuildinfo && pnpm build",
-    "test": "pnpm build && node --test --experimental-test-coverage",
+    "check": "tsc",
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "node -e \"fs.rmSync('lib',{recursive:true,force:true})\" && pnpm build",
+    "test": "node --test --experimental-test-coverage",
     "lint": "eslint .",
     "lint:fix": "pnpm lint -- --fix",
-    "dev": "node --watch lib/index.js server -l http://*:3000"
+    "dev": "node --watch src/index.ts server -l http://*:3000"
   },
   "dependencies": {
-    "@mojojs/core": "^1.26.18"
+    "@mojojs/core": "^2.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -35,7 +36,6 @@
     "eslint-plugin-prettier": "^5.5.5",
     "globals": "^17.6.0",
     "prettier": "^3.8.3",
-    "shx": "^0.4.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.59.2"
   }

@@ -1,5 +1,5 @@
 import type {MojoContext} from '@mojojs/core';
-import type {Frame} from '../models/stream-resources.js';
+import type {Frame} from '../models/stream-resources.ts';
 
 export default class ResourceController {
   async connect(ctx: MojoContext): Promise<void> {

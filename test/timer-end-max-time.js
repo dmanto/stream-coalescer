@@ -1,4 +1,4 @@
-import {app} from '../lib/index.js';
+import {app} from '../src/index.ts';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 

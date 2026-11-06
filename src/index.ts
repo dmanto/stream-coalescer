@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import mojo, {jsonConfigPlugin} from '@mojojs/core';
-import StreamResources, {type StreamResourcesOptions} from './models/stream-resources.js';
+import StreamResources, {type StreamResourcesOptions} from './models/stream-resources.ts';
 
 export const app: ReturnType<typeof mojo> = mojo();
 

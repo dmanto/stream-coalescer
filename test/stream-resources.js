@@ -1,4 +1,4 @@
-import StreamResources from '../lib/models/stream-resources.js';
+import StreamResources from '../src/models/stream-resources.ts';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 

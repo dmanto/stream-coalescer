@@ -6,7 +6,7 @@ See the [Development](README.md#development) section of the README for install, 
 
 ## Before opening a PR
 
-- `pnpm lint` and `pnpm test` both pass. CI runs both across Linux/macOS/Windows and Node 22/24, and will block on either failing.
+- `pnpm check`, `pnpm lint` and `pnpm test` all pass. CI runs tests across Linux/macOS/Windows and Node 22/24 plus lint and type-check, and will block on any failing.
 - New behavior gets a test. This project keeps 100% line coverage; a branch coverage gap is fine only when that branch is genuinely unreachable — say so in a comment if you leave one.
 - Keep the change focused. If it touches the wire protocol or a config default, call that out explicitly in the PR description.
 

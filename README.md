@@ -84,12 +84,15 @@ Point several identical concurrent chat/completion requests at one resource key 
 
 ```sh
 pnpm install
-pnpm test     # builds, then runs node:test with coverage
+pnpm test     # runs node:test with coverage, straight from src/ (no build step)
+pnpm check    # type-check with tsc
 pnpm lint
 pnpm run dev  # --watch, port 3000
 ```
 
-Node >= 22, pnpm. See `CHANGELOG.md` for release notes.
+Node runs the TypeScript sources directly via type stripping, so `src/` must stick to erasable syntax (no enums, namespaces or parameter properties; `tsc` enforces this). `lib/` is only compiled when packing/publishing, since Node won't strip types inside `node_modules`.
+
+Node >= 22.18, pnpm. See `CHANGELOG.md` for release notes.
 
 ## Security note
 
